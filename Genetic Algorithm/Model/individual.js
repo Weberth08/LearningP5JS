@@ -5,7 +5,18 @@ function Individual(genotype) {
     self.genotype = genotype;
     self.fitness = 0;
 
-    self.getGenotypePart = function (totalOfGenes) {
+    self.getGenotypePart = function (totalOfGenes, isfromTheleft = true) {
+
+        if (isfromTheleft)
+            ret = getLeftGenotypePart(totalOfGenes);
+        else
+            ret = getRightGenotypePart(totalOfGenes);
+
+        return ret;
+    }
+
+
+    function getLeftGenotypePart(totalOfGenes) {
         let genotypePart = "";
 
         if (totalOfGenes > 0) {
@@ -16,16 +27,35 @@ function Individual(genotype) {
 
     }
 
-    self.mutate = function (mutationRate = 0) {
+    function getRightGenotypePart(totalOfGenes) {
+        let genotypePart = "";
 
-        if (mutationRate > 0) {
-            let util = new Util();
-            let randomNewGene = util.generateRandomGenotype(mutationRate);
-            let genesToReplace = self.getGenotypePart(mutationRate);
-            self.genotype = self.genotype.replace(genesToReplace, randomNewGene);
+        if (totalOfGenes > 0) {
+            let index = self.genotype.length - totalOfGenes;
+            genotypePart = self.genotype.slice(index, self.genotype.length);
+        }
+        return genotypePart;
+
+    }
+
+    self.mutate = function (mutationRate = 0.01) {
+        let util = new Util();
+
+        let rand = 0;
+        let newGene = "";
+
+        for (let i = 0; i < self.genotype.length; i++) {
+            rand = Math.random();
+            if (rand < mutationRate) {
+                newGene = util.generateRandomGenotype(1);
+                self.genotype = util.replaceAt(self.genotype, i, newGene);
+            }
         }
 
     }
+
+
+
 
 
 

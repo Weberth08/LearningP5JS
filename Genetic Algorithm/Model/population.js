@@ -18,14 +18,10 @@ function Population() {
         self.targetFitness = targetFitness
 
         generateInitialPopulation(self.totalPopulation, self.genotypeLenght)
-        console.log(self.population);
     }
 
     // create new Generations
     self.generate = function () {
-
-
-
         let roulet = [];
         let newPopulation = [];
 
@@ -33,7 +29,7 @@ function Population() {
         self.fitnessAverage = calcFitnessAverage(self.population);
         self.bestIndividual = getTheBestIndividual(self.population);
 
-        if (checkIfProblemWasSolved(self.bestIndividual, self.targetFitness))
+        if (checkIfProblemWasSolved(self.target, self.bestIndividual, self.targetFitness))
             return true;
 
         newPopulation = Reprodution(roulet, self.population, self.genotypeLenght);
@@ -44,34 +40,25 @@ function Population() {
         return false;
     }
 
-    function checkTarget(population, targetFitness) {
-
-
-        for (let i = 0; i < population.length; i++) {
-            if (population[i].fitness >= targetFitness)
-                return true;
+    function checkIfProblemWasSolved(target, individual, targetFitness) {
+        let assert = 0;
+        for (i = 0; i < individual.genotype.length; i++) {
+            if (target[i] == individual.genotype[i])
+                assert++;
         }
-        return false;
 
-
-
+        return (assert / target.length) >= targetFitness;
     }
 
-    function checkIfProblemWasSolved(individual,targetFitness){
-
-        return individual.fitness >= targetFitness;
-
-    }
-
-    function getTheBestIndividual(population){
+    function getTheBestIndividual(population) {
         let bestFitness = -1;
         let bestIndex = -1;
         for (let i = 0; i < population.length; i++) {
-            if(population[i].fitness > bestFitness){
+            if (population[i].fitness > bestFitness) {
                 bestIndex = i;
+                bestFitness = population[i].fitness;
             }
         }
-
         return population[bestIndex];
     }
 
@@ -101,24 +88,36 @@ function Population() {
         let newPopulation = [];
 
         // 1 - calc the fitness for each individual in population
-        let individualFitness = 0;
-        for (let i = 0; i < self.population.length; i++) {
-            individualFitness = calcFitness(self.population[i], target);
-            fitnessArray[i] = individualFitness;
-            self.population[i].fitness = individualFitness;
-        }
+        fitnessArray = calculateFitnessForThePopulation(self.population, self.target);
 
         // 2 - create a "roulet" based in the force of the individual
         for (let i = 0; i < self.population.length; i++) {
-            individualProbability = fitnessArray[i] * 100;
-
-            individualProbability = individualProbability > 0 ? individualProbability : 1;
-
+            individualProbability = Math.round(fitnessArray[i] * 100);
             for (let j = 0; j < individualProbability; j++) {
                 roulet.push(self.population[i]);
             }
         }
         return roulet;
+    }
+
+    function calculateFitnessForThePopulation(population, target) {
+        let fitnessTotal = 0;
+        let fitnessArray = [];
+
+        for (let i = 0; i < population.length; i++) {
+            individualFitness = calcFitness(self.population[i], target);
+            fitnessArray[i] = individualFitness;
+            fitnessTotal += individualFitness;
+            population[i].fitness = individualFitness / target.length;
+        }
+
+        // calc fitness from everyone
+        for (let i = 0; i < population.length; i++) {
+            individualFitness = fitnessArray[i];
+            fitnessArray[i] = fitnessArray[i] / target.length;
+        }
+
+        return fitnessArray;
     }
 
     function calcFitness(Individual, target) {
@@ -129,7 +128,7 @@ function Population() {
             if (genotype[i] === target[i])
                 fitness++;
         }
-        return fitness / target.length;
+        return Math.pow(fitness, 2);
     }
 
     function calcFitnessAverage(population) {
@@ -138,8 +137,6 @@ function Population() {
             fitnessSum += population[i].fitness;
         }
         return fitnessSum / population.length
-
-
     }
 
 
@@ -153,9 +150,13 @@ function Population() {
         let newPopulation = [];
 
         for (let i = 0; i < populationCopy.length; i++) {
-            parentA = roulet[getRandomInt(roulet.length)];
-            parentB = roulet[getRandomInt(roulet.length)];
-            newPopulation.push(doIndividualsCrossing(parentA, parentB, genotypeLenght));
+            if (roulet.length > 0) {
+                let randA = getRandomInt(0, roulet.length);
+                let randB = getRandomInt(0, roulet.length);
+                parentA = roulet[randA];
+                parentB = roulet[randB];
+                newPopulation.push(doIndividualsCrossing(parentA, parentB, genotypeLenght));
+            }
         }
 
         return newPopulation;
@@ -163,17 +164,27 @@ function Population() {
 
     function doIndividualsCrossing(parentA, parentB, genotypeLenght) {
 
-        let totalGenesOfParentA = getRandomInt(0, genotypeLenght + 1)
+        let totalGenesOfParentA = getRandomInt(1, genotypeLenght) //Math.round(genotypeLenght / 2);
         let totalGenesOfParentB = genotypeLenght - totalGenesOfParentA;
 
-        let parentAGenotype = parentA.getGenotypePart(totalGenesOfParentA);
-        let parentBGenotype = parentB.getGenotypePart(totalGenesOfParentB);
+        let parentAGenotype = getRandomGenesFromIndividual(parentA, totalGenesOfParentA);
+        let parentBGenotype = getRandomGenesFromIndividual(parentB, totalGenesOfParentB);
         let crossedGenotype = doGenotypeCrossing(parentAGenotype, parentBGenotype);
         let child = new Individual(crossedGenotype);
 
         return child;
+    }
+
+    function getRandomGenesFromIndividual(individual, totalOfGenes) {
+        let isFromTheLeftOfGenotype = Math.floor(Math.round(Math.random())) == 1;
+        let genes = "";
+
+        genes = individual.getGenotypePart(totalOfGenes, isFromTheLeftOfGenotype);
+        return genes;
 
     }
+
+
 
     function doGenotypeCrossing(genotypeA, genotypeB) {
         return genotypeA + genotypeB;
@@ -184,12 +195,12 @@ function Population() {
 
         let totalElementsToMutate = Math.floor(mutationRate * population.length);
         let randomIndex = 0;
+        let mutationProb = 0.5;
 
-        for (let i = 0; i < population.length; i++) {
-            randomIndex = getRandomInt(population.length);
-            population[randomIndex].mutate(1);
+        for (let i = 0; i < totalElementsToMutate; i++) {
+            randomIndex = getRandomInt(0, population.length);
+            population[randomIndex].mutate(mutationProb);
         }
-
         return population;
     }
 
@@ -206,7 +217,8 @@ function Population() {
     }
 
     function getRandomInt(min = 0, max = 0) {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
+        let ret = random(min, max);
+        return floor(ret);//Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
 
