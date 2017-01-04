@@ -102,7 +102,7 @@ function Population() {
             individualFit = population[i].fitness / target.length;
             individualProbability = Math.round(individualFit * 100);
             for (let j = 0; j < individualProbability; j++) {
-                roulette.push(population[i]);
+                roulette.push(i);
             }
         }
         return roulette;
@@ -141,8 +141,8 @@ function Population() {
         let parentA, parentB, child = {};
 
         if (roulette.length > 0) {
-            parentA = roulette[getRandomInt(0, roulette.length)];
-            parentB = roulette[getRandomInt(0, roulette.length)];
+            parentA = population[roulette[getRandomInt(0, roulette.length)]];
+            parentB = population[roulette[getRandomInt(0, roulette.length)]];
             child = doIndividualsCrossing(parentA, parentB, genotypeLenght);
         }
         return child;

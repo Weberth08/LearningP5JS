@@ -7,9 +7,9 @@ var target = ""
 function setup() {
   createCanvas(window.innerWidth, window.innerWidth);
   // Pick colors randomly
-  target = "To be or not to be that is the question";
+  target = "@temp88829043";
   let totalPopulation = 100;
-  let mutationRate = 0.20;
+  let mutationRate = 0.10;
   let targetFitness = 1;
 
   population = new Population();
