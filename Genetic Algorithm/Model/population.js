@@ -15,32 +15,38 @@ function Population() {
         self.mutationRate = mutationRate;
         self.totalPopulation = totalPopulation;
         self.genotypeLenght = self.target.length;
-        self.targetFitness = targetFitness
+        self.targetFitness = targetFitness;
 
-        generateInitialPopulation(self.totalPopulation, self.genotypeLenght)
+        self.population = generateInitialPopulation(self.totalPopulation, self.genotypeLenght);
+        self.population.forEach(function (element) {
+            calcFitness(element, self.target);
+        }, this);
+        incrementGeneration();
     }
 
     // create new Generations
     self.generate = function () {
-        let roulet = [];
-        let newPopulation = [];
 
-        roulet = Selection(self.target);
+        self.population = doNaturalEvolution(self.population, self.target, self.genotypeLenght, self.mutationRate);
+        incrementGeneration();
         self.fitnessAverage = calcFitnessAverage(self.population);
         self.bestIndividual = getTheBestIndividual(self.population);
 
-        if (checkIfProblemWasSolved(self.target, self.bestIndividual, self.targetFitness))
-            return true;
+        return wasTheProblemSolved(self.target, self.bestIndividual, self.targetFitness);
 
-        newPopulation = Reprodution(roulet, self.population, self.genotypeLenght);
-        newPopulation = mutation(newPopulation, self.mutationRate);
-        self.population = newPopulation;
-        incrementGeneration();
-
-        return false;
     }
 
-    function checkIfProblemWasSolved(target, individual, targetFitness) {
+    function doNaturalEvolution(population, target, genotypeLenght, mutationRate) {
+        let newPopulation = [];
+        roulette = Selection(population, target);
+        newPopulation = ReprodutionAndCalculateFitness(roulette, population, target, genotypeLenght);
+        mutation(newPopulation, mutationRate);
+
+        return newPopulation;
+
+    }
+
+    function wasTheProblemSolved(target, individual, targetFitness) {
         let assert = 0;
         for (i = 0; i < individual.genotype.length; i++) {
             if (target[i] == individual.genotype[i])
@@ -65,11 +71,13 @@ function Population() {
     // - Principle 1: Variation
     function generateInitialPopulation(totalPopulation, genotypeLenght) {
         let genotype;
-        incrementGeneration();
+        let randomPopulation = [];
         for (let i = 0; i < totalPopulation; i++) {
             genotype = generateRandomGenotype(genotypeLenght);
-            self.population.push(new Individual(genotype));
+            randomPopulation.push(new Individual(genotype));
         }
+
+        return randomPopulation;
     }
 
     function generateRandomGenotype(genotypeLenght) {
@@ -81,54 +89,28 @@ function Population() {
 
     // - Principle 2: Selection
 
-    function Selection(target) {
-        let fitnessArray = [];
-        let roulet = [];
-        let individualProbability = 0;
-        let newPopulation = [];
-
-        // 1 - calc the fitness for each individual in population
-        fitnessArray = calculateFitnessForThePopulation(self.population, self.target);
-
-        // 2 - create a "roulet" based in the force of the individual
-        for (let i = 0; i < self.population.length; i++) {
-            individualProbability = Math.round(fitnessArray[i] * 100);
-            for (let j = 0; j < individualProbability; j++) {
-                roulet.push(self.population[i]);
-            }
-        }
-        return roulet;
+    function Selection(population, target) {
+        let roulette = [];
+        roulette = calculateFitnessForThePopulation(population, target);
+        return roulette;
     }
 
     function calculateFitnessForThePopulation(population, target) {
-        let fitnessTotal = 0;
-        let fitnessArray = [];
-
+        let individualFit = 0;
+        let roulette = [];
         for (let i = 0; i < population.length; i++) {
-            individualFitness = calcFitness(self.population[i], target);
-            fitnessArray[i] = individualFitness;
-            fitnessTotal += individualFitness;
-            population[i].fitness = individualFitness / target.length;
+            individualFit = population[i].fitness / target.length;
+            individualProbability = Math.round(individualFit * 100);
+            for (let j = 0; j < individualProbability; j++) {
+                roulette.push(population[i]);
+            }
         }
-
-        // calc fitness from everyone
-        for (let i = 0; i < population.length; i++) {
-            individualFitness = fitnessArray[i];
-            fitnessArray[i] = fitnessArray[i] / target.length;
-        }
-
-        return fitnessArray;
+        return roulette;
     }
 
-    function calcFitness(Individual, target) {
-        let fitness = 0;
-        let genotype = Individual.genotype;
+    function calcFitness(individual, target) {
+        return individual.calcFitness(target);
 
-        for (let i = 0; i < target.length; i++) {
-            if (genotype[i] === target[i])
-                fitness++;
-        }
-        return Math.pow(fitness, 2);
     }
 
     function calcFitnessAverage(population) {
@@ -142,24 +124,28 @@ function Population() {
 
 
     // - Principle 3: Reprodution
-    function Reprodution(rouletOfPeople, population, genotypeLenght) {
-        let roulet = rouletOfPeople;
-        let populationCopy = population;
-        let parentA;
-        let parentB;
+
+    function ReprodutionAndCalculateFitness(rouletteOfPeople, population, target, genotypeLenght) {
+        let child;
         let newPopulation = [];
 
-        for (let i = 0; i < populationCopy.length; i++) {
-            if (roulet.length > 0) {
-                let randA = getRandomInt(0, roulet.length);
-                let randB = getRandomInt(0, roulet.length);
-                parentA = roulet[randA];
-                parentB = roulet[randB];
-                newPopulation.push(doIndividualsCrossing(parentA, parentB, genotypeLenght));
-            }
+        for (let i = 0; i < population.length; i++) {
+            child = Reprodution(rouletteOfPeople, population, genotypeLenght);
+            newPopulation.push(child);
+            calcFitness(child, target);
         }
-
         return newPopulation;
+
+    }
+    function Reprodution(roulette, population, genotypeLenght) {
+        let parentA, parentB, child = {};
+
+        if (roulette.length > 0) {
+            parentA = roulette[getRandomInt(0, roulette.length)];
+            parentB = roulette[getRandomInt(0, roulette.length)];
+            child = doIndividualsCrossing(parentA, parentB, genotypeLenght);
+        }
+        return child;
     }
 
     function doIndividualsCrossing(parentA, parentB, genotypeLenght) {
@@ -183,8 +169,6 @@ function Population() {
         return genes;
 
     }
-
-
 
     function doGenotypeCrossing(genotypeA, genotypeB) {
         return genotypeA + genotypeB;

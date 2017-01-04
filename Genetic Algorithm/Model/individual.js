@@ -54,6 +54,16 @@ function Individual(genotype) {
 
     }
 
+   self.calcFitness = function(target) {
+        let fitness = 0;
+        for (let i = 0; i < target.length; i++) {
+            if (self.genotype[i] === target[i])
+                fitness++;
+        }
+        self.fitness = Math.pow(fitness, 2);
+        return self.fitness;
+    }
+
 
 
 
